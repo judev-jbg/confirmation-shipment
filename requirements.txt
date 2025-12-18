@@ -1,0 +1,14 @@
+# Dependencias principales
+requests==2.31.0
+python-dotenv==1.0.0
+schedule==1.2.0
+
+# Email y notificaciones
+aiosmtplib==3.0.1
+aiohttp==3.9.1
+
+# XML parsing
+xmltodict==0.13.0
+
+# Utilidades
+python-dateutil==2.8.2
