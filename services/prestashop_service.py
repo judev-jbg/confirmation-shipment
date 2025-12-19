@@ -139,27 +139,47 @@ class PrestaShopService:
         filtered_orders = []
 
         for order in orders:
-            # Asegurar que el campo shipping_number existe
+            order_id = order.get("id")
+
+            # Obtener el campo shipping_number
             shipping_number = order.get("shipping_number", {})
 
-            # Si shipping_number no es un diccionario, convertirlo
-            if not isinstance(shipping_number, dict):
-                shipping_number = {"_": str(shipping_number) if shipping_number else ""}
-                order["shipping_number"] = shipping_number
+            # Debug: Mostrar tipo y contenido del campo
+            logger.debug(f"Pedido {order_id} - shipping_number tipo: {type(shipping_number)}, valor: {shipping_number}")
 
-            # Si no tiene la clave "_", añadirla
-            if "_" not in shipping_number:
-                shipping_number["_"] = ""
-                order["shipping_number"] = shipping_number
+            # Determinar el valor del tracking según el tipo de datos
+            tracking_value = None
 
-            # Verificar si tiene número de seguimiento
-            tracking_value = shipping_number.get("_", "").strip()
+            if isinstance(shipping_number, str):
+                # Es un string directo
+                tracking_value = shipping_number.strip()
+            elif isinstance(shipping_number, dict):
+                # Es un diccionario, buscar en diferentes claves posibles
+                # xmltodict puede usar diferentes estructuras:
+                # - "_" cuando es un valor simple
+                # - "#text" cuando el elemento XML tiene atributos
+                tracking_value = (
+                    shipping_number.get("_") or
+                    shipping_number.get("#text") or
+                    ""
+                ).strip()
+
+                # Si aún no hay valor, intentar obtener el primer valor no-atributo
+                if not tracking_value and len(shipping_number) == 1:
+                    key = list(shipping_number.keys())[0]
+                    if not key.startswith("@"):  # Ignorar atributos XML
+                        tracking_value = str(shipping_number[key]).strip()
+            elif shipping_number:
+                # Cualquier otro tipo, convertir a string
+                tracking_value = str(shipping_number).strip()
+
+            logger.debug(f"Pedido {order_id} - tracking_value extraído: '{tracking_value}'")
 
             if tracking_value:
-                logger.debug(f"Pedido {order.get('id')} tiene número de seguimiento: {tracking_value}")
+                logger.debug(f"Pedido {order_id} tiene número de seguimiento: {tracking_value}")
                 filtered_orders.append(order)
             else:
-                logger.debug(f"Pedido {order.get('id')} no tiene número de seguimiento, se omite")
+                logger.info(f"Pedido {order_id} no tiene número de seguimiento, se omite")
 
         return filtered_orders
 

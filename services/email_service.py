@@ -77,14 +77,27 @@ class EmailService:
             )
             response.raise_for_status()
 
-            # La API devuelve el HTML en body.html
+            # Parsear respuesta JSON
             result = response.json()
-            html_content = result.get("body", {}).get("html")
+
+            # Debug: Mostrar estructura de la respuesta
+            logger.debug(f"Estructura de respuesta de API: {list(result.keys())}")
+
+            # La API devuelve el HTML directamente en 'html' o en 'body.html'
+            # Intentar ambas estructuras para compatibilidad
+            html_content = result.get("html") or result.get("body", {}).get("html")
 
             if not html_content:
                 logger.error("La API no devolvió contenido HTML")
+                logger.error(f"Respuesta completa: {str(result)[:500]}")
+                logger.error(f"Claves disponibles: {list(result.keys())}")
                 return None
 
+            # Verificar que el pedido se procesó correctamente
+            if not result.get("success", True):
+                logger.warning(f"La API indicó un problema: {result.get('error', 'Error desconocido')}")
+
+            logger.debug(f"HTML generado correctamente, longitud: {len(html_content)} caracteres")
             return html_content
 
         except Exception as e:
